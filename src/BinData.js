@@ -2,20 +2,28 @@ import { HexToBase64, Base64ToHex } from './Converter';
 
 export class BinData {
 
-    constructor(subtype, rawValue, readableValue) {
+    constructor(subtype, base64Value, readableValue) {
         this.subtype = subtype;
-        this.rawValue = rawValue;
+        this.base64Value = base64Value;
         this.readableValue = readableValue;
     }
 
     toBase64() {
-        return btoa(this.rawValue);
+        return btoa(this.base64Value);
     }
 
     toUUID() {
-        var hex = Base64ToHex(this.toBase64()); // don't use BinData's hex function because it has bugs in older versions of the shell
-        var uuid = hex.substr(0, 8) + '-' + hex.substr(8, 4) + '-' + hex.substr(12, 4) + '-' + hex.substr(16, 4) + '-' + hex.substr(20, 12);
-        return 'UUID("' + uuid + '")';
+        if (this.base64Value === undefined) {
+            return '';
+        }
+        var hex = Base64ToHex(this.base64Value); // don't use BinData's hex function because it has bugs in older versions of the shell
+        const firstSub = hex.substr(0, 8) || '0000';
+        const secondSub = hex.substr(8, 4) || '0000';
+        const thirdSub = hex.substr(12, 4) || '0000';
+        const fourthSub = hex.substr(16, 4) || '0000';
+        const fifthSub = hex.substr(20, 12) || '000000000000';
+        var uuid = firstSub + '-' + secondSub + '-' + thirdSub + '-' + fourthSub + '-' + fifthSub;
+        return uuid;
     }
 
     toJUUID() {
@@ -26,7 +34,7 @@ export class BinData {
         lsb = lsb.substr(14, 2) + lsb.substr(12, 2) + lsb.substr(10, 2) + lsb.substr(8, 2) + lsb.substr(6, 2) + lsb.substr(4, 2) + lsb.substr(2, 2) + lsb.substr(0, 2);
         hex = msb + lsb;
         var uuid = hex.substr(0, 8) + '-' + hex.substr(8, 4) + '-' + hex.substr(12, 4) + '-' + hex.substr(16, 4) + '-' + hex.substr(20, 12);
-        return 'JUUID("' + uuid + '")';
+        return uuid;
     }
 
     toCSUUID() {
@@ -37,13 +45,13 @@ export class BinData {
         var d = hex.substr(16, 16);
         hex = a + b + c + d;
         var uuid = hex.substr(0, 8) + '-' + hex.substr(8, 4) + '-' + hex.substr(12, 4) + '-' + hex.substr(16, 4) + '-' + hex.substr(20, 12);
-        return 'CSUUID("' + uuid + '")';
+        return uuid;
     }
 
     toPYUUID() {
         var hex = Base64ToHex(this.toBase64()); // don't use BinData's hex function because it has bugs
         var uuid = hex.substr(0, 8) + '-' + hex.substr(8, 4) + '-' + hex.substr(12, 4) + '-' + hex.substr(16, 4) + '-' + hex.substr(20, 12);
-        return 'PYUUID("' + uuid + '")';
+        return uuid;
     }
 
     toHexUUID() {
@@ -54,7 +62,12 @@ export class BinData {
 }
 
 export function UUID(uuid) {
-    var hex = uuid.replace(/[{}-]/g, ""); // remove extra characters
+    if (typeof uuid !== 'string') {
+        return '';
+    }
+
+    console.log(uuid);
+    var hex = uuid.toString().replace(/[{}-]/g, ""); // remove extra characters
     var base64 = HexToBase64(hex);
     return new BinData(4, base64, uuid); // new subtype 4
 }
